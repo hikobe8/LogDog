@@ -1,6 +1,8 @@
 plugins {
     id 'java-library'
     id 'kotlin'
+    id 'maven'
+    id 'groovy'
 }
 
 java {
@@ -10,4 +12,28 @@ java {
 
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation gradleApi()
+    implementation localGroovy()
+}
+
+repositories {
+    mavenCentral()
+}
+
+def group='com.hikobe8.logdog' //组
+def version='1.0.0' //版本
+def artifactId='plugin' //唯一标示
+
+
+//将插件打包上传到本地maven仓库
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            pom.groupId = group
+            pom.artifactId = artifactId
+            pom.version = version
+            //指定本地maven的路径，在项目根目录下
+            repository(url: uri('../repos'))
+        }
+    }
 }
