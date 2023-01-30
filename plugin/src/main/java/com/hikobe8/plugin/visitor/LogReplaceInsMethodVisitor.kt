@@ -19,12 +19,13 @@ class LogReplaceInsMethodVisitor(
         isInterface: Boolean
     ) {
         if (oldMethodInfo.owner == owner && oldMethodInfo.name == name && oldMethodInfo.desc == descriptor) {
+            println("found method ${oldMethodInfo.owner}.${oldMethodInfo.name}, desc = ${oldMethodInfo.desc}")
             super.visitMethodInsn(
                 newMethodInfo.opcode,
                 newMethodInfo.owner,
                 newMethodInfo.name,
                 newMethodInfo.desc,
-                newMethodInfo.isInterfaceMethod
+                false
             )
         } else {
             super.visitMethodInsn(opcode, owner, name, descriptor, isInterface)

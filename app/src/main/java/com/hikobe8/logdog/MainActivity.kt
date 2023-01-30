@@ -3,7 +3,6 @@ package com.hikobe8.logdog
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import com.hikobe8.logdog.lib.LogDog
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -15,6 +14,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun i(){
         Log.i("hikobe8", "i")
+        Test.i("hikobe8", "i")
     }
 
     private fun e(){

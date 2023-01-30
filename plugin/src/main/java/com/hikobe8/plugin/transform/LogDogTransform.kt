@@ -1,15 +1,8 @@
 package com.hikobe8.plugin.transform
 
-import com.android.build.api.transform.DirectoryInput
-import com.android.build.api.transform.Format
-import com.android.build.api.transform.JarInput
-import com.android.build.api.transform.QualifiedContent
-import com.android.build.api.transform.Transform
-import com.android.build.api.transform.TransformInvocation
-import com.android.build.api.transform.TransformOutputProvider
+import com.android.build.api.transform.*
 import com.android.build.gradle.internal.pipeline.TransformManager
 import com.android.utils.FileUtils
-import com.google.common.collect.ImmutableSet
 import com.hikobe8.plugin.bean.MethodInfo
 import com.hikobe8.plugin.visitor.LogReplaceInsClassVisitor
 import org.objectweb.asm.ClassReader
@@ -17,15 +10,14 @@ import org.objectweb.asm.ClassVisitor
 import org.objectweb.asm.ClassWriter
 import org.objectweb.asm.Opcodes
 import java.io.File
-import java.lang.Exception
-import java.lang.IllegalArgumentException
+import java.io.FileOutputStream
 
 class LogDogTransform : Transform() {
 
     override fun getName() = "LogDogTransform"
 
     override fun getInputTypes(): MutableSet<QualifiedContent.ContentType> =
-        ImmutableSet.of(QualifiedContent.DefaultContentType.CLASSES)
+        TransformManager.CONTENT_CLASS
 
 
     override fun isIncremental() = false
@@ -62,11 +54,7 @@ private fun DirectoryInput.process(outputProvider: TransformOutputProvider) {
     )
 
     //process directory classes
-    try {
-        replaceLogMethod(file)
-    } catch (e:IllegalArgumentException) {
-        e.printStackTrace()
-    }
+    replaceLogMethod(file)
     FileUtils.mkdirs(dest)
     FileUtils.copyDirectory(file, dest)
 }
@@ -80,35 +68,41 @@ private fun JarInput.process(outputProvider: TransformOutputProvider) {
     )
 
     //process jar classes
-    try {
-        replaceLogMethod(file)
-    } catch (e:IllegalArgumentException) {
-        e.printStackTrace()
-    }
+//    replaceLogMethod(file)
     FileUtils.copyFile(file, dest)
 }
 
 private fun replaceLogMethod(file: File) {
-    val oldMethodInfo =
-        MethodInfo("android/util/Log", "i", "(Ljava/lang/String;Ljava/lang/String;)I")
-    val newMethodInfo = MethodInfo(
-        Opcodes.INVOKESTATIC,
-        "com/hikobe8/logdog/lib/LogDog",
-        "i",
-        "(Ljava/lang/String;Ljava/lang/String;)V",
-        false
-    )
-    try {
-        val classReader = ClassReader(file.readBytes())
-        val classWriter = ClassWriter(ClassWriter.COMPUTE_FRAMES)
-        val classVisitor:ClassVisitor =
-            LogReplaceInsClassVisitor(Opcodes.ASM5, classWriter, oldMethodInfo, newMethodInfo)
-        classReader.accept(
-            classVisitor,
-            ClassReader.SKIP_DEBUG or ClassReader.SKIP_FRAMES
-        )
-    } catch (e:Exception) {
-        println("can't process class : " + file.absolutePath)
-        e.printStackTrace()
+    if (!file.isDirectory) {
+        println(file.name)
+        if (file.name.endsWith(".class") && !file.name.endsWith("LogDog.class")) {
+            val oldMethodInfo =
+                MethodInfo("android/util/Log", "e", "(Ljava/lang/String;Ljava/lang/String;)I")
+            val newMethodInfo = MethodInfo(
+                Opcodes.INVOKESTATIC,
+                "com/hikobe8/logdog/lib/LogDog",
+                "i",
+                "(Ljava/lang/String;Ljava/lang/String;)I",
+                false
+            )
+            val classReader = ClassReader(file.readBytes())
+            val classWriter = ClassWriter(ClassWriter.COMPUTE_FRAMES)
+            val classVisitor: ClassVisitor =
+                LogReplaceInsClassVisitor(Opcodes.ASM4, classWriter, oldMethodInfo, newMethodInfo)
+            classReader.accept(
+                classVisitor,
+//                ClassReader.SKIP_DEBUG or ClassReader.SKIP_FRAMES
+                ClassReader.EXPAND_FRAMES
+            )
+            FileOutputStream(file).apply {
+                write(classWriter.toByteArray())
+                close()
+            }
+        }
+    } else {
+        file.listFiles()?.apply {
+            forEach { replaceLogMethod(it) }
+        }
     }
+
 }

@@ -22,7 +22,7 @@ class LogReplaceInsClassVisitor(
         exceptions: Array<out String>?
     ): MethodVisitor {
         val mv = super.visitMethod(access, name, descriptor, signature, exceptions)
-        if (null != mv && ("init" == name).not() && ("clinit" == name).not()) {
+        if (null != mv && ("<init>" == name).not() && ("<clinit>" == name).not()) {
             val abstractMethod = (access.and(ACC_ABSTRACT)) != 0
             val nativeMethod = (access.and(ACC_NATIVE)) != 0
             if (abstractMethod.not() && nativeMethod.not()) {
